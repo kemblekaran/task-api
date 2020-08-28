@@ -3,10 +3,9 @@ const User = require('../models/user')
 
 const router = new Router()
 
-
-app.get('/health', (req, res) => {
+router.get('/users/health', (req, res) => {
     res.send({
-        message: 'task-api health is all good'
+        message: 'user-api health is all good'
     })
 })
 
