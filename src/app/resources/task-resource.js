@@ -53,11 +53,18 @@ router.patch('/task/:id', async (req, res) => {
             return res.status(404).send({ error: 'Invalid update' })
         }
 
-        const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-        if (!task) {
+        //find the task by its ID
+        const taskToBeUpdated = await Task.findById(req.params.id)
+        if (!taskToBeUpdated) {
             return res.status(404).send()
         }
-        res.send(task)
+
+        //Note: findByIdAndUpdate bypasses the middleware defined in the model
+        //store task by traditional mongoose api instead of findByIdAndUpdate to get the
+        //advantage of the middleware mongoose provides
+        updates.forEach((update) => taskToBeUpdated[update] = req.body[update])
+        await taskToBeUpdated.save()
+        res.send(taskToBeUpdated)
     } catch (error) {
         res.status(500).send(error)
     }

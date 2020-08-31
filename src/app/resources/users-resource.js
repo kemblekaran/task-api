@@ -13,7 +13,6 @@ router.get('/users/health', (req, res) => {
 //create new user
 router.post('/users', async (req, res) => {
 
-    console.log(req.body)
     try {
         const user = await new User(req.body).save()
         res.status(201).send(user)
@@ -49,18 +48,23 @@ router.get('/user/:id', async (req, res) => {
 router.patch('/user/:id', async (req, res) => {
     try {
         const updates = Object.keys(req.body);
-        const allowedUpdates = ['name', 'age', 'email']
+        const allowedUpdates = ['name', 'age', 'email', 'password']
         const isValidOperation = updates.every((update) => allowedUpdates.includes(update))
         if (!isValidOperation) {
             return res.status(404).send({ error: 'Invalid update' })
         }
 
-        console.log('updates', updates)
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-        if (!user) {
+        //find the user by its ID
+        const userToBeUpdated = await User.findById(req.params.id)
+        if (!userToBeUpdated) {
             return res.status(404).send()
         }
-        res.send(user)
+
+        //loop through the properties which are being updated and set its value
+        //so that our middleware will work which is defined in the use model
+        updates.forEach((update) => userToBeUpdated[update] = req.body[update])
+        await userToBeUpdated.save()
+        res.send(userToBeUpdated)
     } catch (error) {
         res.status(500).send(error)
     }
@@ -76,6 +80,17 @@ router.delete('/user/:id', async (req, res) => {
         res.send(deletedUser)
     } catch (error) {
         res.status(500).send()
+    }
+})
+
+router.post('/users/login', async (req, res) => {
+
+    try {
+        const user = await User.findByCredentials(req.body.email, req.body.password)
+        res.send(user)
+    } catch (error) {
+        console.log(error)
+        res.status(400).send()
     }
 })
 
