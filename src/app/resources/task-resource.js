@@ -25,9 +25,9 @@ router.post('/tasks', auth, async (req, res) => {
 })
 
 //fetch all task
-router.get('/tasks', async (req, res) => {
+router.get('/tasks', auth, async (req, res) => {
     try {
-        const tasks = await Task.find({})
+        const tasks = await Task.find({ owner: req.user.id })
         res.send(tasks)
     } catch (error) {
         res.status(500).send(error)
@@ -35,9 +35,10 @@ router.get('/tasks', async (req, res) => {
 })
 
 //fetch individual task
-router.get('/task/:id', async (req, res) => {
+router.get('/task/:id', auth, async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id)
+
+        const task = await Task.findOne({ _id: req.params.id, owner: req.user.id })
         if (!task) {
             return res.status(404).send(task)
         }
@@ -48,7 +49,7 @@ router.get('/task/:id', async (req, res) => {
 })
 
 //update task
-router.patch('/task/:id', async (req, res) => {
+router.patch('/task/:id', auth, async (req, res) => {
     try {
         const updates = Object.keys(req.body)
         const allowedUpdates = ['description', 'completed']
@@ -58,7 +59,8 @@ router.patch('/task/:id', async (req, res) => {
         }
 
         //find the task by its ID
-        const taskToBeUpdated = await Task.findById(req.params.id)
+        // const taskToBeUpdated = await Task.findById(req.params.id)
+        const taskToBeUpdated = await Task.findOne({ _id: req.params.id, owner: req.user.id })
         if (!taskToBeUpdated) {
             return res.status(404).send()
         }
@@ -75,14 +77,13 @@ router.patch('/task/:id', async (req, res) => {
 })
 
 //delete a task
-router.delete('/task/:id', async (req, res) => {
+router.delete('/task/:id', auth, async (req, res) => {
     try {
-        const deletedTask = await Task.findByIdAndDelete(req.params.id)
+        const deletedTask = await Task.findOneAndDelete({ _id: req.params.id, owner: req.user.id })
         if (!deletedTask) {
             return res.status(404).send()
         }
-
-        res.send(deletedTask)
+        res.send()
     } catch (error) {
         res.status(500).send(error)
     }
