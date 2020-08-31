@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -28,7 +29,13 @@ const userSchema = new mongoose.Schema({
                 throw new Error('age must be 18 or above')
             }
         }
-    }
+    },
+    tokens: [{
+        token: {
+            type: String,
+            required: true
+        }
+    }]
 })
 
 //middleware
@@ -46,6 +53,22 @@ userSchema.pre('save', async function (next) {
     next() //continue doing other operations
 })
 
+userSchema.methods.generateAuthToken = async function () {
+
+    //generate JWT token for the user
+    const token = jwt.sign({
+        name: this.name,
+        id: this._id.toString()
+    }, "nodejssecretkey") //TODO move the secret key to the environment variable
+
+    //store token to track users logged in devices and only keep one device logged in at a time
+    //this refers to the current user document which is accessible through menthods in schema of mongoose
+    this.tokens = this.tokens.concat({ token })
+    await this.save()
+
+    return token
+}
+
 userSchema.statics.findByCredentials = async (email, password) => {
 
     //the reference to User is taken from the below where we saved mongoose model in a variable named User
@@ -60,6 +83,20 @@ userSchema.statics.findByCredentials = async (email, password) => {
     }
     return userByEmail
 }
+
+userSchema.methods.toJSON = function () {
+    const userObject = this.toObject()
+
+    delete userObject.password
+    delete userObject.tokens
+    return userObject
+}
+
+userSchema.virtual('tasks', {
+    ref: 'Task',
+    localField: '_id',
+    foreignField: 'owner'
+})
 
 const User = mongoose.model('User', userSchema)
 module.exports = User

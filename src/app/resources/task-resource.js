@@ -1,5 +1,6 @@
 const { Router } = require('express')
 const Task = require('../models/task')
+const auth = require('../middleware/auth')
 
 const router = new Router()
 
@@ -11,9 +12,12 @@ router.get('/task/health', (req, res) => {
 
 //CRUD endpoints for task resource
 //create task
-router.post('/tasks', async (req, res) => {
+router.post('/tasks', auth, async (req, res) => {
     try {
-        const task = await new Task(req.body).save()
+        const task = await new Task({
+            ...req.body,
+            owner: req.user.id
+        }).save()
         res.status(201).send(task)
     } catch (error) {
         res.status(500).send(error)
