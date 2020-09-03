@@ -1,6 +1,9 @@
 const { Router } = require('express')
+const multer = require('multer')
+const sharp = require('sharp')
 const User = require('../models/user')
 const auth = require('../middleware/auth') //attaches middleware functinality to the route
+
 
 const router = new Router()
 
@@ -108,4 +111,57 @@ router.post('/users/logout/:type', auth, async (req, res) => {
     }
 })
 
+//resource for uploading user profile picture
+const uploadAvatar = multer({
+    limits: {
+        fileSize: 1000000
+    },
+    fileFilter(req, file, callback) {
+        if (!['png', 'jpg', 'jpeg'].includes(file.originalname.split('.')[1])) {
+            return callback(new Error('Please upload avatar in either PNG, JPG or JPEG'))
+        }
+        callback(undefined, true)
+
+    }
+})
+//fourth argument to the function allows to send custom error message instead of sending
+//express error message to the client
+router.post('/users/me/avatar',auth, uploadAvatar.single('avatar'), async (req, res) => {
+    const sharpBuffer = await sharp(req.file.buffer).resize({
+        width: 250,
+        height: 250
+    }).png().toBuffer()
+    req.user.avatar = sharpBuffer
+    await req.user.save()
+    res.send()
+}, (error, req, res, next) => {
+    res.status(400).send({
+        error: error.message
+    })
+})
+
+//route for deleting the user avatar
+router.delete('/users/me/avatar', auth, async (req, res) => {
+    try {
+        req.user.avatar = undefined
+        await req.user.save()
+        res.send()
+    } catch (error) {
+        res.status(500).send({ error })
+    }
+})
+
+router.get('/user/:id/avatar', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+        if (!user || !user.avatar) {
+            throw new Error()
+        }
+
+        res.set('Content-Type', 'image/png')
+        res.send(user.avatar)
+    } catch (error) {
+        res.status(404).send()
+    }
+})
 module.exports = router
