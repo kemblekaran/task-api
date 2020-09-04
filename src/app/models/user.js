@@ -71,7 +71,7 @@ userSchema.methods.generateAuthToken = async function () {
     const token = jwt.sign({
         name: this.name,
         id: this._id.toString()
-    }, "nodejssecretkey") //TODO move the secret key to the environment variable
+    }, process.env.JWT_SECRET_KEY) //TODO move the secret key to the environment variable
 
     //store token to track users logged in devices and only keep one device logged in at a time
     //this refers to the current user document which is accessible through menthods in schema of mongoose
