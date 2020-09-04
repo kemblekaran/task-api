@@ -3,6 +3,7 @@ const multer = require('multer')
 const sharp = require('sharp')
 const User = require('../models/user')
 const auth = require('../middleware/auth') //attaches middleware functinality to the route
+const { sendWelcomeEamil, sendCancellationEamil } = require('../emails/account')
 
 
 const router = new Router()
@@ -20,6 +21,7 @@ router.post('/users', async (req, res) => {
     try {
         const user = await new User(req.body).save()
         const token = await user.generateAuthToken()
+        sendWelcomeEamil(user.email, user.name) //send welcome email
         res.status(201).send({ user, token })
     } catch (error) {
         res.status(500).send(error)
@@ -69,6 +71,7 @@ router.patch('/users/me', auth, async (req, res) => {
 router.delete('/user/me', auth, async (req, res) => {
     try {
         await req.user.remove()
+        sendCancellationEamil(req.user.email, req.user.name)//send account deletion email
         res.send()
     } catch (error) {
         res.status(500).send()
@@ -126,7 +129,7 @@ const uploadAvatar = multer({
 })
 //fourth argument to the function allows to send custom error message instead of sending
 //express error message to the client
-router.post('/users/me/avatar',auth, uploadAvatar.single('avatar'), async (req, res) => {
+router.post('/users/me/avatar', auth, uploadAvatar.single('avatar'), async (req, res) => {
     const sharpBuffer = await sharp(req.file.buffer).resize({
         width: 250,
         height: 250
