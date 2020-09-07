@@ -28,22 +28,9 @@ router.post('/users', async (req, res) => {
     }
 })
 
-//fetch all users
+//reads profile
 router.get('/users/me', auth, async (req, res) => {
     res.send(req.user)
-})
-
-//fetch user by id
-router.get('/user/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id)
-        if (!user) {
-            return res.status(404).send()
-        }
-        res.send(user)
-    } catch (error) {
-        res.status(500).send(error)
-    }
 })
 
 //update user
@@ -58,10 +45,9 @@ router.patch('/users/me', auth, async (req, res) => {
 
         //loop through the properties which are being updated and set its value
         //so that our middleware will work which is defined in the use model
-        const userToBeUpdated = req.user
-        updates.forEach((update) => userToBeUpdated[update] = req.body[update])
-        await userToBeUpdated.save()
-        res.send(userToBeUpdated)
+        updates.forEach((update) => req.user[update] = req.body[update])
+        await req.user.save()
+        res.send(req.user)
     } catch (error) {
         res.status(500).send(error)
     }
@@ -85,8 +71,7 @@ router.post('/users/login', async (req, res) => {
         const token = await user.generateAuthToken()
         res.send({ user, token })
     } catch (error) {
-        console.log(error)
-        res.status(400).send()
+        res.status(400).send(error)
     }
 })
 
